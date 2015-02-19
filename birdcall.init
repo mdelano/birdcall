@@ -1,0 +1,35 @@
+#!upstart
+description "birdcall server"
+author      "Mike Delano <mike@mediasilo.com>"
+
+env AWS_ACCESS_KEY_ID=XXXXX
+env AWS_SECRET_ACCESS_KEY=XXXXX
+env AWS_REGION=us-east-1
+env MEDIASILO_AWS_SQSQ=PhoenixWebHookQueue
+
+
+start on startup
+stop on shutdown
+
+# Automatically restart process if crashed
+respawn
+
+# Essentially lets upstart know the process will detach itself to the background
+expect fork
+
+
+script
+    echo $$ > /var/run/birdcall.pid
+    #exec sudo -u root cd /opt/mediasilo && npm install git+ssh://git@github.com:mediasilo/birdcall.git
+    node /opt/mediasilo/node_modules/birdcall/server.js >> /var/log/birdcall.sys.log 2>&1
+end script
+
+pre-start script
+    # Date format same as (new Date()).toISOString() for consistency
+    echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Starting" >> /var/log/birdcall.sys.log
+end script
+
+pre-stop script
+    rm /var/run/birdcall.pid
+    echo "[`date -u +%Y-%m-%dT%T.%3NZ`] (sys) Stopping" >> /var/log/birdcall.sys.log
+end script
